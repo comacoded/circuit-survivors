@@ -4,11 +4,15 @@
   "description": "Circuit Survivors — a chip-defense roguelike survivor",
   "private": true,
   "scripts": {
+    "start": "node server.js",
     "build": "bash build.sh",
     "sync": "npx cap sync ios",
     "open": "npx cap open ios"
   },
   "dependencies": {
+    "express": "^4.21.0"
+  },
+  "optionalDependencies": {
     "@capacitor/core": "^6.0.0",
     "@capacitor/cli": "^6.0.0",
     "@capacitor/ios": "^6.0.0",
