@@ -258,6 +258,7 @@ export class AttackSystem {
                 attack.speed, Math.floor((attack.damage + attack.flatDamageBonus + relayBonus) * this.getNeuralNetworkMultiplier()),
                 attack.size, attack.color
               );
+              proj.maxRange = attack.range;
               proj.bouncesLeft = attack.bounces;
               proj.bounceDamageBonus = attack.bounceDamageBonus;
             }
@@ -303,6 +304,7 @@ export class AttackSystem {
           if (target) {
             const proj = this.getProjectile();
             proj.init(mod.x, mod.y, target.x, target.y, modSpeed, modDmg, 3, modColor);
+            proj.maxRange = modRange;
             if (pb) {
               proj.bouncesLeft = pb.bounces;
               proj.bounceDamageBonus = pb.bounceDamageBonus;

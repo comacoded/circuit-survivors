@@ -16,12 +16,18 @@ export class Projectile {
     this.bounceDamageBonus = 0;
     this.hitEnemies = [];  // reused — cleared on init, never reallocated
     this.pierceCount = 0;
+    this.originX = 0;
+    this.originY = 0;
+    this.maxRange = 0;  // 0 = no range limit
   }
 
   init(x, y, targetX, targetY, speed, damage, size, color) {
     this.active = true;
     this.x = x;
     this.y = y;
+    this.originX = x;
+    this.originY = y;
+    this.maxRange = 0;
     this.damage = damage;
     this.speed = speed;
     this.size = size;
@@ -59,6 +65,16 @@ export class Projectile {
 
     this.x += this.vx * dt;
     this.y += this.vy * dt;
+
+    // Despawn if past max range
+    if (this.maxRange > 0) {
+      const dx = this.x - this.originX;
+      const dy = this.y - this.originY;
+      if (dx * dx + dy * dy > this.maxRange * this.maxRange) {
+        this.active = false;
+        return;
+      }
+    }
 
     // Despawn if off-screen
     if (
