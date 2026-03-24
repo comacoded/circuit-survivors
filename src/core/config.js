@@ -1,0 +1,17 @@
+export const CONFIG = {
+  CANVAS_WIDTH: 390,
+  CANVAS_HEIGHT: 844,
+  TILE_SIZE: 32,
+  GRID_COLS: 11,
+  GRID_ROWS: 11,
+  FPS: 60,
+  FRAME_TIME: 1000 / 60,
+};
+
+export const STATES = {
+  MENU: 'MENU',
+  COMBAT: 'COMBAT',
+  LEVEL_UP: 'LEVEL_UP',
+  BUILD_PHASE: 'BUILD_PHASE',
+  GAME_OVER: 'GAME_OVER',
+};

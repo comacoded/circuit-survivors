@@ -1,0 +1,19 @@
+{
+  "name": "circuit-survivors",
+  "version": "0.5.0",
+  "description": "Circuit Survivors — a chip-defense roguelike survivor",
+  "private": true,
+  "scripts": {
+    "build": "bash build.sh",
+    "sync": "npx cap sync ios",
+    "open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/preferences": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  }
+}
