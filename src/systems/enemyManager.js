@@ -4,6 +4,7 @@ import { SPAWN_TABLE, SPECIAL_SPAWNS } from '../data/enemies.js';
 import { eventBus } from '../core/eventBus.js';
 
 const POOL_SIZE = 100;
+const MAX_ENEMIES = 200;
 const TWO_PI = Math.PI * 2;
 
 // ── Simple particle (death burst + XP orb) ──────────────────
@@ -436,6 +437,9 @@ export class EnemyManager {
   }
 
   spawnEnemyOfType(type, overridePos) {
+    // Hard cap on active enemies to prevent unbounded accumulation
+    if (this.enemiesAlive >= MAX_ENEMIES) return null;
+
     const pos = overridePos || this.getRandomEdgePosition();
     const diff = this.getDifficultyMultiplier();
     const spdMult = this.getSpeedMultiplier();
@@ -542,22 +546,40 @@ export class EnemyManager {
 
     eventBus.emit('enemyKilled', { x: enemy.x, y: enemy.y, type: enemy.type });
 
-    // Buffer Overflow: death explosion
+    // Buffer Overflow: death explosion (iterative queue to prevent stack overflow)
     if (this.xpSystem && this.xpSystem.bufferOverflow) {
-      const bo = this.xpSystem.bufferOverflow;
-      // Cascade Failure: bonus explosion damage
-      const cascadeBonus = this.xpSystem.cascadeFailure
-        ? bo.damage * this.xpSystem.cascadeFailure.bonusPct
-        : 0;
-      const totalDmg = bo.damage + cascadeBonus;
-      const rangeSq = bo.range * bo.range;
-      const toKill = [];
+      this._processBufferOverflow(enemy);
+    }
+  }
 
+  /** Iterative Buffer Overflow chain — replaces recursive killEnemy calls */
+  _processBufferOverflow(origin) {
+    const bo = this.xpSystem.bufferOverflow;
+    const cascadeBonus = this.xpSystem.cascadeFailure
+      ? bo.damage * this.xpSystem.cascadeFailure.bonusPct
+      : 0;
+    const totalDmg = bo.damage + cascadeBonus;
+    const rangeSq = bo.range * bo.range;
+
+    // Queue of enemies whose explosions need processing
+    const queue = [origin];
+    const processed = new Set();
+    processed.add(origin);
+
+    // Cap chain iterations to prevent runaway freezes
+    const MAX_CHAIN = 80;
+    let chainCount = 0;
+
+    while (queue.length > 0 && chainCount < MAX_CHAIN) {
+      const source = queue.shift();
+      chainCount++;
+
+      const toKill = [];
       for (let i = 0; i < this.pool.length; i++) {
         const e2 = this.pool[i];
-        if (!e2.active || e2 === enemy) continue;
-        const dx = e2.x - enemy.x;
-        const dy = e2.y - enemy.y;
+        if (!e2.active || processed.has(e2)) continue;
+        const dx = e2.x - source.x;
+        const dy = e2.y - source.y;
         if (dx * dx + dy * dy < rangeSq) {
           const killed = e2.takeDamage(totalDmg);
           if (killed) toKill.push(e2);
@@ -566,25 +588,27 @@ export class EnemyManager {
 
       // Explosion visual
       if (toKill.length > 0 || bo.damage > 0) {
-        eventBus.emit('firewallPulseVisual', { x: enemy.x, y: enemy.y, radius: bo.range });
+        eventBus.emit('firewallPulseVisual', { x: source.x, y: source.y, radius: bo.range });
       }
 
-      // Chain kills (which may trigger more explosions if chain is enabled)
       for (const e2 of toKill) {
+        processed.add(e2);
+        e2.active = false;
+        this.enemiesAlive--;
+        this.totalKills++;
+
+        // Particles + drops for chained kills
+        const c2 = 4 + Math.floor(Math.random() * 3);
+        for (let j = 0; j < c2; j++) {
+          const p = this.getParticle();
+          p.initBurst(e2.x, e2.y, e2.color);
+        }
+        const xp2 = this.getParticle();
+        xp2.initXpOrb(e2.x, e2.y, e2.xpValue);
+
+        // If chain enabled, queue this kill's explosion for processing
         if (bo.chain) {
-          this.killEnemy(e2); // recursive — chain reaction
-        } else {
-          e2.active = false;
-          this.enemiesAlive--;
-          this.totalKills++;
-          // Particles + drops for chained kills
-          const c2 = 4 + Math.floor(Math.random() * 3);
-          for (let j = 0; j < c2; j++) {
-            const p = this.getParticle();
-            p.initBurst(e2.x, e2.y, e2.color);
-          }
-          const xp2 = this.getParticle();
-          xp2.initXpOrb(e2.x, e2.y, e2.xpValue);
+          queue.push(e2);
         }
       }
     }

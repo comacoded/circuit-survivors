@@ -42,6 +42,10 @@ export class GridManager {
     this.metaProgression = null; // set externally for module durability
     this.totalModulesPlaced = 0;
 
+    // Cached getAllModules result — invalidated on grid changes
+    this._modulesCache = null;
+    this._modulesCacheDirty = true;
+
     // Module regen listener
     eventBus.on('regenModules', (amount) => {
       for (const mod of this.getAllModules()) {
@@ -152,6 +156,7 @@ export class GridManager {
 
     this.grid[col][row] = module;
     this.totalModulesPlaced++;
+    this._invalidateModuleCache();
     eventBus.emit('modulePlaced', { type: module.type, col, row });
     this.recalcConnections();
 
@@ -181,6 +186,7 @@ export class GridManager {
     if (!cell || cell === 'chip' || cell === 'damaged') return null;
 
     this.grid[col][row] = null;
+    this._invalidateModuleCache();
     this.recalcConnections();
     return cell;
   }
@@ -193,6 +199,7 @@ export class GridManager {
 
     const destroyed = cell;
     this.grid[col][row] = 'damaged';
+    this._invalidateModuleCache();
     this.recalcConnections();
     return destroyed;
   }
@@ -270,16 +277,25 @@ export class GridManager {
     return this.connected[col][row];
   }
 
-  /** Get all placed modules as an array */
+  /** Get all placed modules as an array (cached, invalidated on grid changes) */
   getAllModules() {
-    const modules = [];
-    for (let c = 0; c < this.cols; c++) {
-      for (let r = 0; r < this.rows; r++) {
-        const cell = this.grid[c][r];
-        if (cell && cell !== 'chip') modules.push(cell);
+    if (this._modulesCacheDirty || !this._modulesCache) {
+      const modules = [];
+      for (let c = 0; c < this.cols; c++) {
+        for (let r = 0; r < this.rows; r++) {
+          const cell = this.grid[c][r];
+          if (cell && cell !== 'chip') modules.push(cell);
+        }
       }
+      this._modulesCache = modules;
+      this._modulesCacheDirty = false;
     }
-    return modules;
+    return this._modulesCache;
+  }
+
+  /** Mark module cache as stale */
+  _invalidateModuleCache() {
+    this._modulesCacheDirty = true;
   }
 
   // ── Update ────────────────────────────────────────────────

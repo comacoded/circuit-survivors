@@ -489,7 +489,7 @@ export class AttackSystem {
 
     for (let i = 0; i < this.enemyManager.pool.length; i++) {
       const e = this.enemyManager.pool[i];
-      if (!e.active || e === hitEnemy || projectile.hitEnemies.includes(e)) continue;
+      if (!e.active || e === hitEnemy || projectile.hitEnemies.has(e)) continue;
 
       const dx = e.x - projectile.x;
       const dy = e.y - projectile.y;
@@ -510,7 +510,7 @@ export class AttackSystem {
 
       for (let j = 0; j < this.enemyManager.pool.length; j++) {
         const e = this.enemyManager.pool[j];
-        if (!e.active || p.hitEnemies.includes(e)) continue;
+        if (!e.active || p.hitEnemies.has(e)) continue;
 
         const dx = p.x - e.x;
         const dy = p.y - e.y;
@@ -525,7 +525,7 @@ export class AttackSystem {
           flash.init(p.x, p.y);
 
           // Try to bounce
-          p.hitEnemies.push(e);
+          p.hitEnemies.add(e);
           // Piercing Protocol: projectile passes through enemies
           const pierce = this.xpSystem?.piercingProtocol;
           if (pierce && p.pierceCount === undefined) {
@@ -622,19 +622,27 @@ export class AttackSystem {
       }
     }
 
-    // Lightning arcs
+    // Lightning arcs (no shadowBlur — use layered strokes for glow)
     for (const arc of this.lightningArcs) {
       const alpha = arc.timer / arc.maxTimer;
       if (arc.points.length < 2) continue;
 
       ctx.save();
       ctx.globalAlpha = alpha;
+
+      // Outer glow layer (wide, semi-transparent — cheap fake glow)
+      ctx.strokeStyle = `rgba(68, 221, 255, 0.3)`;
+      ctx.lineWidth = 6;
+      for (let s = 0; s < arc.points.length - 1; s++) {
+        ctx.beginPath();
+        ctx.moveTo(arc.points[s].x, arc.points[s].y);
+        ctx.lineTo(arc.points[s + 1].x, arc.points[s + 1].y);
+        ctx.stroke();
+      }
+
+      // Main arc line
       ctx.strokeStyle = '#44ddff';
       ctx.lineWidth = 2;
-      ctx.shadowColor = '#44ddff';
-      ctx.shadowBlur = 8;
-
-      // Draw jagged lightning between each pair of points
       for (let s = 0; s < arc.points.length - 1; s++) {
         const from = arc.points[s];
         const to = arc.points[s + 1];
@@ -656,7 +664,6 @@ export class AttackSystem {
       // Bright core line (thinner, white)
       ctx.strokeStyle = 'rgba(200, 240, 255, 0.7)';
       ctx.lineWidth = 1;
-      ctx.shadowBlur = 0;
       for (let s = 0; s < arc.points.length - 1; s++) {
         ctx.beginPath();
         ctx.moveTo(arc.points[s].x, arc.points[s].y);

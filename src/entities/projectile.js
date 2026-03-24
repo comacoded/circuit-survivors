@@ -14,7 +14,7 @@ export class Projectile {
     this.bouncesLeft = 0;
     this.bounceRange = 120;
     this.bounceDamageBonus = 0;
-    this.hitEnemies = [];  // reused — cleared on init, never reallocated
+    this.hitEnemies = new Set();  // reused — cleared on init
     this.pierceCount = 0;
     this.originX = 0;
     this.originY = 0;
@@ -35,8 +35,8 @@ export class Projectile {
     this.bouncesLeft = 0;
     this.bounceDamageBonus = 0;
     this.pierceCount = 0;
-    // Reuse array — clear without allocating
-    this.hitEnemies.length = 0;
+    // Reuse Set — clear without allocating
+    this.hitEnemies.clear();
 
     const dx = targetX - x;
     const dy = targetY - y;
