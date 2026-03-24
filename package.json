@@ -5,9 +5,9 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "build": "bash build.sh",
-    "sync": "npx cap sync ios",
-    "open": "npx cap open ios"
+    "cap:build": "bash build.sh",
+    "cap:sync": "npx cap sync ios",
+    "cap:open": "npx cap open ios"
   },
   "dependencies": {
     "express": "^4.21.0"
